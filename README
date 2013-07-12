@@ -1,0 +1,32 @@
+Author:Nikita Batov
+
+Necessary includes in DriverLib by TI
+Used Code Composer Studio
+Firmware for msp430f5510
+Manage PWM for 4 power engines 
+i2c on p3.0 & p3.1
+Use i2c-tools
+
+command line: i2cset -y 2 0x48 0x0 0xXXYY w
+
+Bytes format:
+0x`XX`YY` - HEX(2 bytes)
+
+XX:
+Use the first 4 bits
+First and second bytes set mode of engine
+00 - Neutral
+01 - Back
+10 - Forward
+11 - Block (Not for all engines)
+
+YY:
+Second bytes set power of engine
+0x64 = 100%
+0xa = 10%
+(there is uncertainty)
+
+ E.g. : 0x4405 = First Back 68%
+
+
+
