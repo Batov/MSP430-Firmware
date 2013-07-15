@@ -28,5 +28,7 @@ Second bytes set power of engine
 
  E.g. : 0x4405 = First Back 68%
 
+ Software Reset =  i2cset -y 2 0x48 0x0 0xffff w
+
 
 

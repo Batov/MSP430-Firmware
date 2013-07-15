@@ -28,6 +28,7 @@
 #define ResetOptions {Engine = 0; Dir = 0;}
 #define SLAVE_ADDRESS 0x48
 
+char GoToBSL = 0;
 char getter = 0;
 char Engine = 0;
 char Dir = 0;
@@ -82,7 +83,16 @@ __interrupt void USCI_B0_ISR(void)
 	{
 		getter = USCI_B_I2C_slaveDataGet(USCI_B0_BASE); //double interrupt: first time = first byte;
 
-		if (FirstByte)
+		if (getter == 0xFF)
+		{
+			if (GoToBSL)
+			{
+				__disable_interrupt();
+				((void (*)()) 0x1000)();
+			}
+			GoToBSL = 1;
+		}
+		else if (FirstByte)
 		{
 			Engine = getter >> 2; //parsing first byte ( read bytes format)
 			Dir = getter & 3;
