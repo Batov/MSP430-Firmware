@@ -1,22 +1,4 @@
 //Nikita Batov
-//Use TI driverlib
-//msp430f5510 - i2c on p3.0 & p3.1
-
-//Bytes format:
-//0x`xx`yy` - HEX(2 bytes)
-//xx:
-//use the first 4 bits
-//first and second bytes set mode of engine
-//00 - Neutral
-//01 - Back
-//10 - Forward
-//11 - Block (Not for all engines)
-//yy:
-//Second bytes set power of engine
-//0x64 = 100%
-//0xa = 100%
-//(there is uncertainty)
-// e.g. : 0x4405 = First Back 68%
 
 #include "inc/hw_memmap.h"
 #include "usci_b_i2c.h"
