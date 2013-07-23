@@ -1,32 +1,12 @@
-//Nikita Batov
-
-#include "inc/hw_memmap.h"
-#include "usci_b_i2c.h"
-#include "wdt_a.h"
-#include "gpio.h"
-
-#define FirstByte (Engine == 0)
-#define ResetOptions {Engine = 0; Dir = 0;}
-#define SLAVE_ADDRESS 0x48
-
-#define First 1
-#define Second 2
-#define Third 3
-#define Fourth 4
-#define Forward 2
-#define Back 1
-#define Neutral 0
-#define Block 3
-
-char GoToBSL = 0;
-char getter = 0;
-char Engine = 0;
-char Dir = 0;
+/*
+ * PowerEngineLib.c
+ *
+ *
+ *      Author: batov
+ */
+#include "PowerEngineLib.h"
 
 int HS = 0;
-int Period = 400;
-
-#define Duty (Power)*(Period-60 )*0.01 //magic...just magic...
 short int GDir[10];
 short int GPower[10];
 
@@ -39,11 +19,14 @@ int SetEngineMode(int Engine, int Dir, int Power)
 
 	P1SEL = 0; // use pins how gpio
 	P2SEL = 0;
-	GDir[Engine] = Dir;
-	GPower[Engine] = Power;
 
 	if ((Power == 0) && (Dir != Block)) //hack for power off
 		Dir = 0;
+
+	GDir[Engine] = Dir;
+	GPower[Engine] = Power;
+
+
 	switch (Engine)
 	{
 	case First:
@@ -236,7 +219,7 @@ int SetEngineMode(int Engine, int Dir, int Power)
 	return 0;
 }
 
-int EnablePower(int Engine) // check hardware protection and activate engines
+int HardwareDefense(int Engine) // check hardware protection and activate engines
 {
 	P5DIR &= !(BIT4 + BIT5);
 	P3DIR &= !(BIT3 + BIT4);
@@ -282,7 +265,7 @@ int EnablePower(int Engine) // check hardware protection and activate engines
 	}
 	__delay_cycles(10);
 	PJOUT &= !(BIT0 + BIT1 + BIT2 + BIT3);
-	__delay_cycles(50);
+	__delay_cycles(10);
 	SetEngineMode(Engine, GDir[Engine], GPower[Engine]);
 	return 0;
 
@@ -313,10 +296,10 @@ __interrupt void TIMER0_A0_ISR(void) //interrupt for CCR0
 	HS++;
 	if (HS >= 200)
 	{
-		EnablePower(First);
-		EnablePower(Second);
-		EnablePower(Third);
-		EnablePower(Fourth);
+		HardwareDefense(First);
+		HardwareDefense(Second);
+		HardwareDefense(Third);
+		HardwareDefense(Fourth);
 		HS = 0;
 	}
 }
@@ -361,102 +344,5 @@ __interrupt void TIMER0_A1_ISR(void) //interrupt for CCR1-4
 		break;
 	}
 
-}
-
-void main()
-{
-	//Stop WDT
-	WDT_A_hold(WDT_A_BASE);
-
-	//Assign I2C pins to USCI_B0
-	GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P3,
-			GPIO_PIN1 + GPIO_PIN0);
-
-	//Initialize I2C as a slave device
-	USCI_B_I2C_slaveInit(USCI_B0_BASE, SLAVE_ADDRESS);
-
-	//Specify transmit +receive mode
-	USCI_B_I2C_setMode(USCI_B0_BASE,
-			USCI_B_I2C_RECEIVE_MODE + USCI_B_I2C_TRANSMIT_MODE);
-
-	//Enable I2C Module to start operations
-	USCI_B_I2C_enable(USCI_B0_BASE);
-
-	//Enable interrupts
-	USCI_B_I2C_clearInterruptFlag(USCI_B0_BASE,
-			USCI_B_I2C_RECEIVE_INTERRUPT + USCI_B_I2C_TRANSMIT_INTERRUPT
-					+ USCI_B_I2C_STOP_INTERRUPT);
-	USCI_B_I2C_enableInterrupt(USCI_B0_BASE,
-			USCI_B_I2C_RECEIVE_INTERRUPT + USCI_B_I2C_TRANSMIT_INTERRUPT
-					+ USCI_B_I2C_STOP_INTERRUPT);
-
-	while (1)
-	{
-		//Enter low power mode 0 with interrupts enabled.
-		// __no_operation();
-//		if (HS >= 20)
-//		{
-//			EnablePower(First);
-//			EnablePower(Second);
-//			EnablePower(Third);
-//			EnablePower(Fourth);
-//			HS = 0;
-//		}
-		__bis_SR_register(LPM0_bits + GIE);
-	}
-}
-
-//******************************************************************************
-//
-//This is the USCI_B0 interrupt vector service routine.
-//
-//******************************************************************************
-#pragma vector = USCI_B0_VECTOR
-__interrupt void USCI_B0_ISR(void)
-{
-	switch (__even_in_range(UCB0IV, 12))
-	{
-	case USCI_I2C_UCRXIFG:
-	{
-		getter = USCI_B_I2C_slaveDataGet(USCI_B0_BASE); //double interrupt: first time = first byte;
-
-		if (getter == 0xFF)
-		{
-			if (GoToBSL)
-			{
-				__disable_interrupt();
-				((void (*)()) 0x1000)();
-			}
-			GoToBSL = 1;
-		}
-		else if (FirstByte)
-		{
-			Engine = getter >> 2; //parsing first byte ( read bytes format)
-			Dir = getter & 3;
-		}
-		else
-		{
-			//	EnablePower(Engine); // check hardware protection and activate engines
-			SetEngineMode(Engine, Dir, getter);
-			ResetOptions
-
-		}
-
-		break;
-	}
-	case USCI_I2C_UCTXIFG:
-	{
-		//	USCI_B_I2C_slaveDataPut(USCI_B0_BASE, getter);
-		//interrupt for transmit
-		break;
-	}
-	case USCI_I2C_UCSTPIFG:
-	{
-
-		//stop interrupt
-		__bic_SR_register_on_exit(LPM0_bits);
-		break;
-	}
-	}
 }
 
