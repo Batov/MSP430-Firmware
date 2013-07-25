@@ -8,9 +8,10 @@
 #define ENCODERLIB_H_
 #include "msp430.h"
 
-#define Freq 10
+#define FreqEncoder 10
+#define FreqPing 2
 
 int StartConversation(int Wheel);
-int GetPeriod();
+int GetResult();
 
 #endif /* ENCODERLIB_H_ */

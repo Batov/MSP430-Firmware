@@ -6,10 +6,9 @@
 #include "gpio.h"
 
 #include "PowerEngineLib.h"
-#include "EncoderLib.h"
+#include "AnalogLib.h"
 #include "TypesOfRequsts.h"
 
-char TypeOfRequest = 0;
 uint8_t StageOfSending = 1;
 uint8_t ResultPart[3] =
 { 0 };
@@ -22,24 +21,6 @@ uint8_t ResultPart[3] =
 char Getter = 0;
 char theEngine = 0;
 char theDir = 0;
-
-int GetResult()
-{
-	switch (TypeOfRequest)
-	{
-	case FirstEncoder:
-	{
-		return GetPeriod();
-		break;
-	}
-	case SecondEncoder:
-	{
-		return GetPeriod();
-		break;
-	}
-	}
-	TypeOfRequest = 0;
-}
 
 int SetI2CConnection()
 {
@@ -64,6 +45,7 @@ int SetI2CConnection()
 	USCI_B_I2C_enableInterrupt(USCI_B0_BASE,
 			USCI_B_I2C_RECEIVE_INTERRUPT + USCI_B_I2C_TRANSMIT_INTERRUPT
 					+ USCI_B_I2C_STOP_INTERRUPT);
+
 	return 0;
 }
 
@@ -73,6 +55,7 @@ void main()
 	WDT_A_hold(WDT_A_BASE);
 
 	SetI2CConnection();
+
 
 	while (1)
 	{
@@ -98,16 +81,34 @@ __interrupt void USCI_B0_ISR(void)
 
 		switch (Getter)
 		{
-		case 0xF1:
+		case 0xE1:
 		{
 			StartConversation(FirstEncoder);
-			TypeOfRequest = FirstEncoder;
 			break;
 		}
-		case 0xF2:
+		case 0xE2:
 		{
 			StartConversation(SecondEncoder);
-			TypeOfRequest = SecondEncoder;
+			break;
+		}
+		case 0xA1:
+		{
+			StartConversation(PING);
+			break;
+		}
+		case 0xA2:
+		{
+			StartConversation(HCSR04);
+			break;
+		}
+		case 0xA3:
+		{
+			StartConversation(Color);
+			break;
+		}
+		case 0xA4:
+		{
+			StartConversation(Sharp);
 			break;
 		}
 		case 0xFF:
